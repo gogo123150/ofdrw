@@ -15,7 +15,7 @@ import java.io.Serializable;
  * @author 权观宇
  * @since 2019-09-28 11:05:06
  */
-public class ST_Box extends STBase {
+public class ST_Box extends STBase implements Cloneable {
 
     /**
      * 左上角 x坐标
@@ -45,13 +45,13 @@ public class ST_Box extends STBase {
     public ST_Box(double topLeftX, double topLeftY, double width, double height) {
         this.topLeftX = topLeftX;
         this.topLeftY = topLeftY;
-        if (width <= 0) {
-            throw new IllegalArgumentException("width 应大于0");
-        }
+//        if (width <= 0) {
+//            throw new IllegalArgumentException("width 应大于0");
+//        }
         this.width = width;
-        if (height <= 0) {
-            throw new IllegalArgumentException("height 应大于0");
-        }
+//        if (height <= 0) {
+//            throw new IllegalArgumentException("height 应大于0");
+//        }
         this.height = height;
     }
 
@@ -150,5 +150,10 @@ public class ST_Box extends STBase {
     @Override
     public String toString() {
         return fmt(topLeftX) + " " + fmt(topLeftY) + " " + fmt(width) + " " + fmt(height);
+    }
+
+    @Override
+    public ST_Box clone() {
+        return new ST_Box(topLeftX, topLeftY, width, height);
     }
 }

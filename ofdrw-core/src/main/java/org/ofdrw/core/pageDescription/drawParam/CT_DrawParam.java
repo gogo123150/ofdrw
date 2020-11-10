@@ -9,7 +9,6 @@ import org.ofdrw.core.basicType.ST_RefID;
 import org.ofdrw.core.graph.pathObj.FillColor;
 import org.ofdrw.core.graph.pathObj.StrokeColor;
 import org.ofdrw.core.pageDescription.color.color.CT_Color;
-import org.ofdrw.core.pageDescription.color.colorSpace.CT_ColorSpace;
 
 /**
  * 绘制参数
@@ -43,7 +42,7 @@ public class CT_DrawParam extends OFDElement {
         super(proxy);
     }
 
-    public CT_DrawParam(String name) {
+    public CT_DrawParam() {
         super("DrawParam");
     }
 
