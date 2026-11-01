@@ -33,6 +33,10 @@ public enum Weight {
 
     Integer weight;
 
+    public static Weight getInstance(int weight) {
+        return getInstance(String.valueOf(weight));
+    }
+
     public static Weight getInstance(String weight) {
         if (weight == null || weight.trim().length() == 0) {
             weight = "400";
@@ -59,5 +63,19 @@ public enum Weight {
             default:
                 throw new NumberFormatException("错误的文字对象的粗细值：" + weight);
         }
+    }
+
+    /**
+     * 获取字体粗细值
+     *
+     * @return 粗细值
+     */
+    public Integer getWeight() {
+        return weight;
+    }
+
+    @Override
+    public String toString() {
+        return Integer.toString(weight);
     }
 }

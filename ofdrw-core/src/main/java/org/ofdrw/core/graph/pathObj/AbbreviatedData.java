@@ -2,10 +2,11 @@ package org.ofdrw.core.graph.pathObj;
 
 import org.dom4j.Element;
 import org.ofdrw.core.OFDElement;
-import org.ofdrw.core.basicType.STBase;
 import org.ofdrw.core.basicType.ST_Pos;
 
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * 图形轮廓数据
@@ -17,42 +18,110 @@ import java.util.LinkedList;
  * @author 权观宇
  * @since 2019-10-16 09:09:15
  */
-public class AbbreviatedData extends OFDElement {
+public class AbbreviatedData extends OFDElement implements Cloneable, Iterator<OptVal> {
 
     /**
      * 绘制数据队列
      */
-    private LinkedList<String[]> dataQueue;
+    private LinkedList<OptVal> dataQueue;
+
 
     public AbbreviatedData(Element proxy) {
         super(proxy);
         dataQueue = parse(proxy.getText());
     }
 
-
-
     public AbbreviatedData() {
         super("AbbreviatedData");
         this.dataQueue = new LinkedList<>();
     }
 
+    public AbbreviatedData(List<OptVal> list) {
+        this();
+        this.dataQueue = new LinkedList<>(list);
+    }
+
     /**
      * 解析字符串构造数据队列
-     * @param txt 紧缩字符串
+     * <p>
+     * 数组中的两个元素间多个空格将会被理解成一个空格。
+     * <p>
+     * 无法解析转换的数字将会被当做0
+     *
+     * @param dataStr 紧缩字符串
      * @return 数据队列
      */
-    public static LinkedList<String[]> parse(String txt) {
-        // TODO 2019-10-16 22:12:06 解析函数待确定
-        return null;
+    public static LinkedList<OptVal> parse(String dataStr) {
+        if (dataStr == null || dataStr.length() == 0) {
+            return new LinkedList<>();
+        }
+        String[] arr = dataStr.split("\\s+");
+        LinkedList<OptVal> res = new LinkedList<>();
+        String opt = null;
+        List<String> values = new LinkedList<>();
+        for (String s : arr) {
+            if (s.isEmpty()) {
+                // 跳过split产生的空字符串（如前导空格导致的""）
+                continue;
+            }
+            switch (s) {
+                case "S":
+                case "M":
+                case "L":
+                case "Q":
+                case "B":
+                case "A":
+                case "C":
+                case "CM":
+                    if (opt != null) {
+                        res.add(new OptVal(opt, values));
+                    }
+                    values = new LinkedList<>();
+                    opt = s;
+                    break;
+                default:
+                    values.add(s);
+            }
+        }
+        if (opt != null) {
+            res.add(new OptVal(opt, values));
+        }
+        return res;
+    }
+
+    /**
+     * 追加整个 图形轮廓数据
+     *
+     * @param another 图形轮廓数据
+     * @return this
+     */
+    public AbbreviatedData append(AbbreviatedData another) {
+        if (another == null) {
+            return this;
+        }
+        this.dataQueue.addAll(another.dataQueue);
+        return this;
+    }
+
+    /**
+     * 获取原始的操作符和操作数
+     *
+     * @return 操作符和操作数的结合
+     */
+    public LinkedList<OptVal> getRawOptVal() {
+        return this.dataQueue;
     }
 
     /**
      * 刷新元素
-     *
+     * <p>
      * 默认情况下，每次调用C都将会刷新元素内容
+     *
+     * @return this
      */
-    public void flush(){
+    public AbbreviatedData flush() {
         this.setText(this.toString());
+        return this;
     }
 
     /**
@@ -63,9 +132,10 @@ public class AbbreviatedData extends OFDElement {
      * @return this
      */
     public AbbreviatedData defineStart(double x, double y) {
-        dataQueue.add(new String[]{
-                "S", " ", STBase.fmt(x), " ", STBase.fmt(y)
-        });
+//        dataQueue.add(new String[]{
+//                "S", " ", STBase.fmt(x), " ", STBase.fmt(y)
+//        });
+        dataQueue.add(new OptVal("S", new double[]{x, y}));
         return this;
     }
 
@@ -85,9 +155,10 @@ public class AbbreviatedData extends OFDElement {
      * @return this
      */
     public AbbreviatedData moveTo(double x, double y) {
-        dataQueue.add(new String[]{
-                "M", " ", STBase.fmt(x), " ", STBase.fmt(y)
-        });
+//        dataQueue.add(new String[]{
+//                "M", " ", STBase.fmt(x), " ", STBase.fmt(y)
+//        });
+        dataQueue.add(new OptVal("M", new double[]{x, y}));
         return this;
     }
 
@@ -107,9 +178,10 @@ public class AbbreviatedData extends OFDElement {
      * @return this
      */
     public AbbreviatedData lineTo(double x, double y) {
-        dataQueue.add(new String[]{
-                "L", " ", STBase.fmt(x), " ", STBase.fmt(y)
-        });
+//        dataQueue.add(new String[]{
+//                "L", " ", STBase.fmt(x), " ", STBase.fmt(y)
+//        });
+        dataQueue.add(new OptVal("L", new double[]{x, y}));
         return this;
     }
 
@@ -134,10 +206,11 @@ public class AbbreviatedData extends OFDElement {
      */
     public AbbreviatedData quadraticBezier(double x1, double y1,
                                            double x2, double y2) {
-        dataQueue.add(new String[]{
-                "Q", " ", STBase.fmt(x1), " ", STBase.fmt(y1),
-                " ", STBase.fmt(x2), " ", STBase.fmt(y2)
-        });
+//        dataQueue.add(new String[]{
+//                "Q", " ", STBase.fmt(x1), " ", STBase.fmt(y1),
+//                " ", STBase.fmt(x2), " ", STBase.fmt(y2)
+//        });
+        dataQueue.add(new OptVal("Q", new double[]{x1, y1, x2, y2}));
         return this;
     }
 
@@ -169,11 +242,12 @@ public class AbbreviatedData extends OFDElement {
     public AbbreviatedData cubicBezier(double x1, double y1,
                                        double x2, double y2,
                                        double x3, double y3) {
-        dataQueue.add(new String[]{
-                "B", " ", STBase.fmt(x1), " ", STBase.fmt(y1),
-                " ", STBase.fmt(x2), " ", STBase.fmt(y2),
-                " ", STBase.fmt(x3), " ", STBase.fmt(y3)
-        });
+//        dataQueue.add(new String[]{
+//                "B", " ", STBase.fmt(x1), " ", STBase.fmt(y1),
+//                " ", STBase.fmt(x2), " ", STBase.fmt(y2),
+//                " ", STBase.fmt(x3), " ", STBase.fmt(y3)
+//        });
+        dataQueue.add(new OptVal("B", new double[]{x1, y1, x2, y2, x3, y3}));
         return this;
     }
 
@@ -221,11 +295,15 @@ public class AbbreviatedData extends OFDElement {
         if (sweep != 0 && sweep != 1) {
             throw new NumberFormatException("sweep 只接受 0 或 1");
         }
-        dataQueue.add(new String[]{
-                "A", " ", STBase.fmt(rx), " ", STBase.fmt(ry),
-                " ", STBase.fmt(angle), " ", STBase.fmt(large),
-                " ", STBase.fmt(sweep), " ", STBase.fmt(x), " ", STBase.fmt(y)
-        });
+//        dataQueue.add(new String[]{
+//                "A", " ", STBase.fmt(rx), " ", STBase.fmt(ry),
+//                " ", STBase.fmt(angle), " ", STBase.fmt(large),
+//                " ", STBase.fmt(sweep), " ", STBase.fmt(x), " ", STBase.fmt(y)
+//        });
+        dataQueue.add(new OptVal("A", new double[]{
+                rx, ry, angle, large,
+                sweep, x, y
+        }));
         return this;
     }
 
@@ -251,9 +329,8 @@ public class AbbreviatedData extends OFDElement {
      * @return this
      */
     public AbbreviatedData close() {
-        dataQueue.add(new String[]{"C"});
-        // 重新设置元素内容
-        this.flush();
+//        dataQueue.add(new String[]{"C"});
+        dataQueue.add(new OptVal("C"));
         return this;
     }
 
@@ -279,20 +356,79 @@ public class AbbreviatedData extends OFDElement {
     @Override
     public String toString() {
         if (dataQueue.size() == 0) {
-            throw new IllegalArgumentException("AbbreviatedData 不能为空");
+//            throw new IllegalArgumentException("AbbreviatedData 不能为空");
+            return "";
         }
         StringBuilder dataBuilder = new StringBuilder();
         int cnt = 0;
-        for (String[] operatorItem : dataQueue) {
+        for (OptVal operatorItem : dataQueue) {
             cnt++;
             if (cnt != 1) {
                 // 每个操作符之间使用空格间隔
                 dataBuilder.append(" ");
             }
-            for (String item : operatorItem) {
-                dataBuilder.append(item);
-            }
+            dataBuilder.append(operatorItem.toString());
         }
         return dataBuilder.toString();
+    }
+
+    /**
+     * 复制路径对象
+     *
+     * @return 复制之后的路径对象
+     */
+    @Override
+    public AbbreviatedData clone() {
+        AbbreviatedData clone = new AbbreviatedData();
+        clone.dataQueue = new LinkedList<>();
+        for (OptVal item : dataQueue) {
+            clone.dataQueue.add(item.clone());
+        }
+        clone.flush();
+        return clone;
+    }
+
+
+    /**
+     * 是否还有下一个绘制操作对象（迭代器接口）
+     *
+     * @return true - 还有更多；false - 没有更多
+     */
+    @Override
+    public boolean hasNext() {
+        return dataQueue.iterator().hasNext();
+    }
+
+    /**
+     * 迭代下一个操作对象
+     *
+     * @return 下一个操作对象
+     */
+    @Override
+    public OptVal next() {
+        return dataQueue.iterator().next();
+    }
+
+    /**
+     * 绘制操作元素数量
+     *
+     * @return 元素数量
+     */
+    public int size() {
+        return dataQueue.size();
+    }
+
+    /**
+     * 判断两个路径是否完全一致
+     *
+     * @param o 带比较对象
+     * @return true - 路径一致；false - 路径不一致
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (o instanceof AbbreviatedData) {
+            return false;
+        }
+        return this.toString().equals(o.toString());
     }
 }

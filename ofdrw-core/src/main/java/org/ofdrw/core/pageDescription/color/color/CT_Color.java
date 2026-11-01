@@ -66,6 +66,10 @@ public class CT_Color extends OFDElement {
                 .setValue(new ST_Array(r, g, b));
     }
 
+    public static CT_Color rgb(int[] rgb) {
+        return rgb(rgb[0], rgb[1], rgb[2]);
+    }
+
     /**
      * 【可选 属性】
      * 设置 颜色值
@@ -240,6 +244,29 @@ public class CT_Color extends OFDElement {
     }
 
     /**
+     * 【可选 属性】
+     * 获取 颜色透明度，仅返回元素上**显式书写**的值
+     * <p>
+     * 与 {@link #getAlpha()} 的区别：{@code getAlpha()} 在属性缺失时返回规范默认值 {@code 255}（完全不透明），
+     * 调用方无法判断“未定义”；本方法在属性缺失时返回 {@code null}，
+     * 供渲染侧按“图元 Alpha × 颜色 Alpha”叠加时区分“未设置”与“显式不透明”。
+     *
+     * @return 显式书写的颜色透明度 0~255；属性缺失时返回 null
+     * @since 2.5.1
+     */
+    public Integer getAlphaExplicit() {
+        String str = this.attributeValue("Alpha");
+        if (str == null || str.trim().length() == 0) {
+            return null;
+        }
+        Integer value = Integer.parseInt(str);
+        if (value < 0 || value > 255) {
+            throw new NumberFormatException("颜色透明度范围在 0~255 之间取值：" + value);
+        }
+        return value;
+    }
+
+    /**
      * 【可选】
      * 设置 颜色
      *
@@ -267,5 +294,26 @@ public class CT_Color extends OFDElement {
             return null;
         }
         return ColorClusterType.getInstance(elements.get(0));
+    }
+
+    /**
+     * 【可选】
+     * 获取 指定类型的颜色
+     *
+     * @param <T> 颜色类型
+     * @return 指定类型色对象， null表示不存指定类型颜色
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends ColorClusterType> T getColorByType() {
+        List<Element> elements = this.elements();
+        if (elements.size() == 0) {
+            return null;
+        }
+        try {
+            return (T) ColorClusterType.getInstance(elements.get(0));
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            return null;
+        }
     }
 }

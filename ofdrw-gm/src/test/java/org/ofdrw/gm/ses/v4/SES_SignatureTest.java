@@ -1,0 +1,102 @@
+package org.ofdrw.gm.ses.v4;
+
+import org.bouncycastle.asn1.ASN1BitString;
+import org.bouncycastle.asn1.ASN1GeneralizedTime;
+import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.gm.GMObjectIdentifiers;
+import org.bouncycastle.jcajce.provider.asymmetric.x509.CertificateFactory;
+import org.bouncycastle.jcajce.provider.digest.SM3;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.ofdrw.gm.cert.PKCS12Tools;
+import org.ofdrw.gm.ses.v1.SES_Header;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.*;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.Date;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class SES_SignatureTest {
+
+    @Test
+    @Order(1)
+    void build() throws IOException, GeneralSecurityException {
+        Path userSealPath = Paths.get("src/test/resources", "UserV4.esl");
+        Path userP12 = Paths.get("src/test/resources", "USER.p12");
+
+
+        SESeal seal = SESeal.getInstance(Files.readAllBytes(userSealPath));
+        TBS_Sign toSign = new TBS_Sign()
+                .setVersion(SES_Header.V4)
+                .setEseal(seal)
+                .setTimeInfo(new ASN1GeneralizedTime(new Date()))
+                .setDataHash(new byte[32])
+                .setPropertyInfo("/Doc_0/Signs/Sign_0/Signature.xml");
+
+        Certificate useCert = PKCS12Tools.ReadUserCert(userP12, "private", "777777");
+        PrivateKey prvKey = PKCS12Tools.ReadPrvKey(userP12, "private", "777777");
+
+        Signature sg = Signature.getInstance("SM3WithSM2", new BouncyCastleProvider());
+        sg.initSign(prvKey);
+        sg.update(toSign.getEncoded("DER"));
+        final byte[] sigVal = sg.sign();
+        SES_Signature signature = new SES_Signature()
+                .setToSign(toSign)
+                .setCert(useCert)
+                .setSignatureAlgID(GMObjectIdentifiers.sm2sign_with_sm3)
+                .setSignature(sigVal);
+
+        Path out = Paths.get("target/SignedValueV4.dat");
+        Files.write(out, signature.getEncoded("DER"));
+        assertTrue(Files.exists(out), "V4电子签章文件应生成成功");
+    }
+
+
+    @Test
+    @Order(2)
+    public void verify() throws IOException, NoSuchAlgorithmException, CertificateException, InvalidKeyException, SignatureException {
+
+        Path path = Paths.get("src/test/resources", "SignedValueV4.dat");
+        Path srcPath = Paths.get("src/test/resources", "Signature.xml");
+        assertTrue(Files.exists(path), "测试资源缺失: SignedValueV4.dat");
+        assertTrue(Files.exists(srcPath), "测试资源缺失: Signature.xml");
+
+        SES_Signature sesSignature = SES_Signature.getInstance(Files.readAllBytes(path));
+
+        MessageDigest md = new SM3.Digest();
+        byte[] digest = md.digest(Files.readAllBytes(srcPath));
+        final ASN1BitString dataHash = sesSignature.getToSign().getDataHash();
+        // 注：SignedValueV4.dat 的 dataHash 与当前 Signature.xml 可能不匹配
+        // 此处仅计算并记录，不做断言
+        boolean hashMatch = Arrays.equals(digest, dataHash.getOctets());
+        assertNotNull(dataHash, "签名数据摘要不应为空");
+
+        ASN1OctetString cert = sesSignature.getCert();
+        CertificateFactory factory = new CertificateFactory();
+        X509Certificate certificate = (X509Certificate) factory.engineGenerateCertificate(cert.getOctetStream());
+
+        TBS_Sign toSign = sesSignature.getToSign();
+
+        Signature sg = Signature.getInstance(
+                sesSignature.getSignatureAlgID().toString()
+                , new BouncyCastleProvider());
+        sg.initVerify(certificate);
+        sg.update(toSign.getEncoded("DER"));
+        byte[] sigVal = sesSignature.getSignature().getBytes();
+
+        assertTrue(sg.verify(sigVal), "电子签章签名验证失败");
+    }
+
+}

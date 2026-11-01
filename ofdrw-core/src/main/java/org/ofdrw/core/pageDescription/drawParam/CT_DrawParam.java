@@ -9,7 +9,6 @@ import org.ofdrw.core.basicType.ST_RefID;
 import org.ofdrw.core.graph.pathObj.FillColor;
 import org.ofdrw.core.graph.pathObj.StrokeColor;
 import org.ofdrw.core.pageDescription.color.color.CT_Color;
-import org.ofdrw.core.pageDescription.color.colorSpace.CT_ColorSpace;
 
 /**
  * 绘制参数
@@ -43,7 +42,7 @@ public class CT_DrawParam extends OFDElement {
         super(proxy);
     }
 
-    public CT_DrawParam(String name) {
+    public CT_DrawParam() {
         super("DrawParam");
     }
 
@@ -131,6 +130,25 @@ public class CT_DrawParam extends OFDElement {
 
     /**
      * 【可选 属性】
+     * 获取 线宽，仅返回元素上**显式书写**的值
+     * <p>
+     * 与 {@link #getLineWidth()} 的区别：{@code getLineWidth()} 在属性缺失时返回规范默认值 {@code 0.353}，
+     * 调用方无法判断“未定义”；本方法在属性缺失时返回 {@code null}，
+     * 供渲染侧按“就近原则”取值时避免默认值打断 {@code Relative} 继承链。
+     *
+     * @return 显式书写的线宽，单位 mm；属性缺失时返回 null
+     * @since 2.5.1
+     */
+    public Double getLineWidthExplicit() {
+        String str = this.attributeValue("LineWidth");
+        if (str == null || str.trim().length() == 0) {
+            return null;
+        }
+        return Double.parseDouble(str);
+    }
+
+    /**
+     * 【可选 属性】
      * 设置 线条连接样式
      * <p>
      * 可选样式参照{@link LineJoinType}，线条连接样式的取值和显示效果之间的关系见表
@@ -207,7 +225,7 @@ public class CT_DrawParam extends OFDElement {
             this.removeAttr("DashOffset");
             return this;
         }
-        this.addAttribute("DashOffset", dashOffset.toString());
+        this.addAttribute("DashOffset", STBase.fmt(dashOffset));
         return this;
     }
 
@@ -284,7 +302,7 @@ public class CT_DrawParam extends OFDElement {
             this.removeAttr("MiterLimit");
             return this;
         }
-        this.addAttribute("MiterLimit", miterLimit.toString());
+        this.addAttribute("MiterLimit", STBase.fmt(miterLimit));
         return this;
     }
 
@@ -321,8 +339,9 @@ public class CT_DrawParam extends OFDElement {
             this.removeOFDElemByNames("FillColor");
             return this;
         }
-        fillColor.setOFDName("FillColor");
-        this.set(fillColor);
+        FillColor color = new FillColor((Element) fillColor.clone());
+        color.setOFDName("FillColor");
+        this.set(color);
         return this;
     }
 
@@ -356,8 +375,9 @@ public class CT_DrawParam extends OFDElement {
             this.removeOFDElemByNames("StrokeColor");
             return this;
         }
-        strokeColor.setOFDName("StrokeColor");
-        this.set(strokeColor);
+        StrokeColor c = new StrokeColor((Element) strokeColor.clone());
+        c.setOFDName("StrokeColor");
+        this.set(c);
         return this;
     }
 
@@ -373,5 +393,12 @@ public class CT_DrawParam extends OFDElement {
     public CT_Color getStrokeColor() {
         Element e = this.getOFDElement("StrokeColor");
         return e == null ? null : new StrokeColor(e);
+    }
+
+    @Override
+    public CT_DrawParam clone() {
+        CT_DrawParam copy = new CT_DrawParam((Element) super.clone());
+        copy.setParent(null);
+        return copy;
     }
 }

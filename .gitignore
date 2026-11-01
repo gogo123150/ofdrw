@@ -27,3 +27,29 @@ HELP.md
 
 ### VS Code ###
 .vscode/
+ofdrw-core/target/
+ofdrw-font/target/
+ofdrw-gm/target/
+ofdrw-gv/target/
+ofdrw-layout/target/
+ofdrw-pkg/target/
+ofdrw-reader/target/
+ofdrw-sign/target/
+ofdrw-full/target/
+target
+.vscode
+### 本地 OFD/PDF 比对样本与生成的图片，不入库 ###
+/ofd_pdf_match/
+/.local_compare/
+.agent-teams
+.sesearch/
+### 调研/临时目录，不入库 ###
+/.research/
+### Python 虚拟环境，不入库 ###
+/.venv/
+ofdrw-reader/DOC_0_copy/
+src_material/
+.snapshots/
+scripts/
+.ci
+.m2-ci
